@@ -12,6 +12,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -34,19 +37,20 @@ jobs:
           ${{ runner.os }}-gradle-
 
     - name: Decode keystore (from secret KEYSTORE_BASE64)
-      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      if: env.KEYSTORE_BASE64 != ''
       run: |
         echo "Decoding keystore into keystore.jks"
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+        printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
         ls -l keystore.jks
 
     - name: Create keystore.properties
+      if: env.KEYSTORE_BASE64 != ''
       run: |
         cat > keystore.properties <<EOF
         storeFile=keystore.jks
-        storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-        keyAlias=${{ secrets.KEY_ALIAS }}
-        keyPassword=${{ secrets.KEY_PASSWORD }}
+        storePassword=$KEYSTORE_PASSWORD
+        keyAlias=$KEY_ALIAS
+        keyPassword=$KEY_PASSWORD
         EOF
         echo "keystore.properties created"
       env:
@@ -80,5 +84,4 @@ jobs:
         tag: v${{ github.run_number }}
         name: Release v${{ github.run_number }}
         files: app/build/outputs/apk/release/app-release.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
