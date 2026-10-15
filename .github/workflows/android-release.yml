@@ -66,6 +66,17 @@ jobs:
           echo "Place the LSPosed/Xposed API jar here (xposed-api-82.jar)" > app/libs/README.txt
         fi
 
+    - name: Generate Gradle wrapper if missing
+      run: |
+        if [ ! -f ./gradlew ]; then
+          echo "gradlew missing, generating with system gradle..."
+          gradle wrapper --gradle-version 8.5
+        else
+          echo "gradlew already present"
+        fi
+        chmod +x ./gradlew
+        ls -l ./gradlew gradle/wrapper/ || true
+
     - name: Build signed release APK
       run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
       env:
