@@ -1,0 +1,6 @@
+id=com.ziyu.live
+name=AccessibilityBlocker
+version=1.0
+versionCode=1
+author=ZIYU
+description=Block apps from reading Accessibility settings/events (LSPosed/Xposed module)

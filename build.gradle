@@ -1,0 +1,72 @@
+// Root build.gradle
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.2'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task generateKeystore {
+    doLast {
+        def ks = file("$rootDir/keystore.jks")
+        if (!ks.exists()) {
+            println "Generating keystore.jks..."
+            def cmd = [
+                'keytool',
+                '-genkeypair',
+                '-v',
+                '-storepass', 'changeit',
+                '-keypass', 'changeit',
+                '-keystore', ks.absolutePath,
+                '-alias', 'ziyu',
+                '-dname', 'CN=ZIYU, OU=Dev, O=ZIYU, L=City, ST=State, C=CN',
+                '-keyalg', 'RSA',
+                '-keysize', '2048',
+                '-validity', '36500'
+            ]
+            try {
+                def proc = cmd.execute()
+                proc.in.eachLine { println it }
+                proc.err.eachLine { System.err.println it }
+                proc.waitFor()
+                if (proc.exitValue() != 0) {
+                    throw new GradleException("keytool failed to generate keystore. Please create keystore.jks manually.")
+                } else {
+                    println "keystore.jks generated."
+                }
+            } catch (Exception e) {
+                throw new GradleException("Failed to run keytool. Make sure JDK keytool is installed and on PATH. Error: " + e.message)
+            }
+        } else {
+            println "keystore.jks already exists."
+        }
+
+        def props = file("$rootDir/keystore.properties")
+        if (!props.exists()) {
+            props.text = """storeFile=keystore.jks
+storePassword=changeit
+keyAlias=ziyu
+keyPassword=changeit
+"""
+            println "keystore.properties created with default values."
+        } else {
+            println "keystore.properties already exists."
+        }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.name == 'assembleRelease' }) {
+        tasks.findByName('generateKeystore')?.mustRunAfter()
+    }
+}
