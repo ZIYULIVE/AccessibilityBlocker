@@ -1,0 +1,62 @@
+plugins {
+    id 'com.android.application'
+}
+
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+} else {
+    println "Warning: keystore.properties not found in project root. Using defaults pointing to keystore.jks"
+}
+
+android {
+    namespace 'com.ziyu.live'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.ziyu.live"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    onfigs {
+        release {
+            def storeFilePath = keystoreProps.getProperty("storeFile") ?: "keystore.jks"
+            storeFile rootProject.file(storeFilePath)
+            storePassword keystoreProps.getProperty("storePassword") ?: 'changeit'
+            keyAlias keystoreProps.getProperty("keyAlias") ?: 'ziyu'
+            keyPassword keystoreProps.getProperty("keyPassword") ?: 'changeit'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    applicationVariants.all { variant ->
+        if (variant.buildType.name == "release") {
+            variant.assembleProvider.configure {
+                dependsOn rootProject.tasks.findByName("generateKeystore")
+            }
+        }
+    }
+}
+
+dependencies {
+    compileOnly files('libs/xposed-api-82.jar')
+}
