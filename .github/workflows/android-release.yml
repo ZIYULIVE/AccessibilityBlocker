@@ -75,12 +75,14 @@ jobs:
           exit 0
         fi
 
-        echo "gradlew missing. Generating in a clean temp directory (Gradle $GRADLE_VERSION)..."
+        echo "gradlew missing. Generating wrapper for Gradle $GRADLE_VERSION in a clean temp dir..."
 
-        # 在临时空目录中生成，完全不接触项目配置
         TMP_DIR=$(mktemp -d)
         pushd "$TMP_DIR"
-        gradle init --type basic --dsl groovy --project-name dummy --no-daemon --gradle-version "$GRADLE_VERSION"
+
+        # 在空目录中执行 wrapper 任务，完全不接触项目配置
+        gradle wrapper --gradle-version "$GRADLE_VERSION" --no-daemon
+
         popd
 
         # 把生成的文件复制到项目根目录
