@@ -14,8 +14,6 @@ jobs:
 
     env:
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      # 指定与项目 AGP 兼容的 Gradle 版本
-      # 注意：这个版本需要和你的 AGP 版本匹配，请参考下方兼容性列表
       GRADLE_VERSION: '8.7'
 
     steps:
@@ -69,17 +67,32 @@ jobs:
           echo "Place the LSPosed/Xposed API jar here (xposed-api-82.jar)" > app/libs/README.txt
         fi
 
-    - name: Generate Gradle wrapper if missing
+    - name: Generate Gradle wrapper in a clean temp directory
       run: |
-        if [ ! -f ./gradlew ]; then
-          echo "gradlew missing, generating with Gradle $GRADLE_VERSION..."
-          # 使用 --gradle-version 明确指定版本，避免使用系统默认的最新版
-          gradle wrapper --gradle-version $GRADLE_VERSION
-        else
-          echo "gradlew already present"
+        if [ -f ./gradlew ]; then
+          echo "gradlew already present, skipping generation."
+          chmod +x ./gradlew
+          exit 0
         fi
+
+        echo "gradlew missing. Generating in a clean temp directory (Gradle $GRADLE_VERSION)..."
+
+        # 在临时空目录中生成，完全不接触项目配置
+        TMP_DIR=$(mktemp -d)
+        pushd "$TMP_DIR"
+        gradle init --type basic --dsl groovy --project-name dummy --no-daemon --gradle-version "$GRADLE_VERSION"
+        popd
+
+        # 把生成的文件复制到项目根目录
+        cp -r "$TMP_DIR/gradlew" .
+        cp -r "$TMP_DIR/gradlew.bat" . 2>/dev/null || true
+        mkdir -p gradle/wrapper
+        cp -r "$TMP_DIR/gradle/wrapper/"* gradle/wrapper/
+
         chmod +x ./gradlew
-        ls -l ./gradlew gradle/wrapper/ || true
+        rm -rf "$TMP_DIR"
+        echo "Wrapper generated and copied."
+        ls -l ./gradlew gradle/wrapper/
 
     - name: Build signed release APK
       run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
