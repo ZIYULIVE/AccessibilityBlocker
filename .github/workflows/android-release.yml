@@ -75,12 +75,15 @@ jobs:
           exit 0
         fi
 
-        echo "gradlew missing. Generating wrapper for Gradle $GRADLE_VERSION in a clean temp dir..."
+        echo "gradlew missing. Generating wrapper for Gradle $GRADLE_VERSION..."
 
         TMP_DIR=$(mktemp -d)
         pushd "$TMP_DIR"
 
-        # 在空目录中执行 wrapper 任务，完全不接触项目配置
+        # 关键：创建一个空的 settings.gradle，让 Gradle 识别这是一个项目
+        touch settings.gradle
+
+        # 在带有 settings.gradle 的空目录中执行 wrapper 任务
         gradle wrapper --gradle-version "$GRADLE_VERSION" --no-daemon
 
         popd
