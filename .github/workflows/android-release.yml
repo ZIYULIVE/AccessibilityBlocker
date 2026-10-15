@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # 需要写 Release/上传资产权限
+  contents: write
 
 jobs:
   build:
@@ -14,6 +14,9 @@ jobs:
 
     env:
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      # 指定与项目 AGP 兼容的 Gradle 版本
+      # 注意：这个版本需要和你的 AGP 版本匹配，请参考下方兼容性列表
+      GRADLE_VERSION: '8.7'
 
     steps:
     - name: Checkout
@@ -69,8 +72,9 @@ jobs:
     - name: Generate Gradle wrapper if missing
       run: |
         if [ ! -f ./gradlew ]; then
-          echo "gradlew missing, generating with system gradle..."
-          gradle wrapper --gradle-version 8.5
+          echo "gradlew missing, generating with Gradle $GRADLE_VERSION..."
+          # 使用 --gradle-version 明确指定版本，避免使用系统默认的最新版
+          gradle wrapper --gradle-version $GRADLE_VERSION
         else
           echo "gradlew already present"
         fi
