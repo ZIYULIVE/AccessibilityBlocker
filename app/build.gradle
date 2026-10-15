@@ -4,10 +4,17 @@ plugins {
 
 def keystorePropsFile = rootProject.file("keystore.properties")
 def keystoreProps = new Properties()
+def hasKeystore = false
+
 if (keystorePropsFile.exists()) {
     keystoreProps.load(new FileInputStream(keystorePropsFile))
+    def storeFilePath = keystoreProps.getProperty("storeFile") ?: "keystore.jks"
+    hasKeystore = rootProject.file(storeFilePath).exists()
+    if (!hasKeystore) {
+        println "Warning: keystore file '${storeFilePath}' not found. Release will be unsigned."
+    }
 } else {
-    println "Warning: keystore.properties not found in project root. Using defaults pointing to keystore.jks"
+    println "Warning: keystore.properties not found. Release will be unsigned."
 }
 
 android {
@@ -22,7 +29,7 @@ android {
         versionName "1.0"
     }
 
-    onfigs {
+    signingConfigs {                      // ✅ 修正拼写
         release {
             def storeFilePath = keystoreProps.getProperty("storeFile") ?: "keystore.jks"
             storeFile rootProject.file(storeFilePath)
@@ -36,10 +43,14 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig signingConfigs.release
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
-            signingConfig signingConfigs.release
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
@@ -48,13 +59,7 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 
-    applicationVariants.all { variant ->
-        if (variant.buildType.name == "release") {
-            variant.assembleProvider.configure {
-                dependsOn rootProject.tasks.findByName("generateKeystore")
-            }
-        }
-    }
+    // 删掉 applicationVariants.all { ... generateKeystore ... } 那段
 }
 
 dependencies {
